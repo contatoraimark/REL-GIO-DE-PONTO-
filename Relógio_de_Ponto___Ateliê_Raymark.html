@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Relógio de Ponto — Ateliê Raymark</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+
+  <script>
+    // Configuração do Tailwind com a paleta do Ateliê Raymark (#FBF3DE creme e #6F6D48 verde-oliva)
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cream: {
+              DEFAULT: '#FBF3DE',
+              light: '#FDF9EE',
+              dark: '#F2E6C4',
+              border: '#E2D4B0'
+            },
+            olive: {
+              DEFAULT: '#6F6D48',
+              dark: '#545235',
+              light: '#89875C',
+              soft: '#ECEAD8'
+            },
+            ink: {
+              DEFAULT: '#2C2B1E',
+              muted: '#5E5C45'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            serif: ['Cormorant Garamond', 'serif'],
+            mono: ['JetBrains Mono', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    body {
+      background-color: #FBF3DE;
+      color: #2C2B1E;
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* Sombra sutil e orgânica para os cartões do ateliê */
+    .atelier-card {
+      background-color: #FDF9EE;
+      border: 1px solid #E2D4B0;
+      box-shadow: 0 8px 24px -6px rgba(84, 82, 53, 0.08), 0 2px 6px -1px rgba(84, 82, 53, 0.04);
+    }
+
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-cream text-ink antialiased selection:bg-olive selection:text-cream-light">
+  <!-- Contêiner principal fluido e responsivo para visualização direta ou via /embed no Notion -->
+  <div class="w-full max-w-3xl mx-auto px-4 py-5 sm:px-6 sm:py-8">
+
+    <!-- Cabeçalho do Ateliê Raymark -->
+    <header class="atelier-card rounded-3xl p-5 sm:p-6 mb-5">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-olive/10 text-olive-dark text-xs font-semibold tracking-wide uppercase mb-2">
+            <span class="w-2 h-2 rounded-full bg-olive animate-pulse"></span>
+            Controle de Jornada
+          </div>
+          <h1 class="font-serif text-3xl sm:text-4xl font-bold text-olive-dark tracking-tight leading-none">
+            Ateliê Raymark
+          </h1>
+          <p id="current-date-label" class="text-sm text-ink-muted mt-1.5 capitalize">
+            Carregando data...
+          </p>
+        </div>
+
+        <!-- Relógio em tempo real -->
+        <div class="bg-cream rounded-2xl border border-cream-border px-4 py-3 flex sm:flex-col items-center sm:items-end justify-between gap-1">
+          <span class="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
+            Hora Atual
+          </span>
+          <div id="live-clock" class="font-mono text-2xl sm:text-3xl font-bold text-olive-dark tabular-nums">
+            00:00:00
+          </div>
+          <span id="shift-status-badge" class="text-xs font-medium px-2.5 py-0.5 rounded-full bg-cream-dark text-ink-muted">
+            Aguardando entrada
+          </span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Painel de Métricas e Cronômetros em Tempo Real -->
+    <section aria-label="Cronômetros e métricas do dia" class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 sm:gap-4 mb-5">
+      <!-- 1. Horas no Ateliê -->
+      <div class="atelier-card rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-semibold uppercase tracking-wider text-ink-muted">
+            Tempo no Ateliê
+          </span>
+          <svg class="w-4 h-4 text-olive" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M12 7v5l3 2"></path>
+          </svg>
+        </div>
+        <div id="metric-atelier-duration" class="font-mono text-2xl sm:text-3xl font-bold text-ink tabular-nums">
+          00h 00m 00s
+        </div>
+        <p id="metric-atelier-sub" class="text-xs text-ink-muted mt-1.5">
+          Desconta automaticamente o almoço
+        </p>
+      </div>
+
+      <!-- 2. Duração do Almoço -->
+      <div class="atelier-card rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-semibold uppercase tracking-wider text-ink-muted">
+            Tempo de Almoço
+          </span>
+          <svg class="w-4 h-4 text-olive" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M3 11h18M5 11a7 7 0 0 1 14 0"></path>
+            <path d="M4 15h16"></path>
+          </svg>
+        </div>
+        <div id="metric-lunch-duration" class="font-mono text-2xl sm:text-3xl font-bold text-ink tabular-nums">
+          00h 00m
+        </div>
+        <p id="metric-lunch-sub" class="text-xs text-ink-muted mt-1.5">
+          Saída e volta cronometradas
+        </p>
+      </div>
+
+      <!-- 3. Horário / Minutos da Volta do Almoço -->
+      <div class="atelier-card rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-semibold uppercase tracking-wider text-ink-muted">
+            Volta do Almoço
+          </span>
+          <svg class="w-4 h-4 text-olive" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M9 14l-4-4 4-4"></path>
+            <path d="M5 10h11a4 4 0 1 1 0 8h-1"></path>
+          </svg>
+        </div>
+        <div id="metric-lunch-return" class="font-mono text-2xl sm:text-3xl font-bold text-olive-dark tabular-nums">
+          --:--
+        </div>
+        <p id="metric-lunch-return-minutes" class="text-xs text-ink-muted mt-1.5">
+          Minutos do retorno: -- min
+        </p>
+      </div>
+    </section>
+
+    <!-- Botões de Batida de Ponto -->
+    <section aria-label="Ações de ponto" class="atelier-card rounded-3xl p-5 sm:p-6 mb-5">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-olive-dark">
+          Bater Ponto
+        </h2>
+        <button
+          id="btn-reset-day"
+          type="button"
+          class="text-xs font-medium text-ink-muted hover:text-olive-dark underline underline-offset-4 transition-colors p-1"
+        >
+          Limpar registro de hoje
+        </button>
+      </div>
+
+      <!-- Grade 2x2 de botões com alvos de toque confortáveis -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        <!-- Entrar no ateliê -->
+        <button
+          id="btn-clock-in"
+          type="button"
+          class="group flex items-center justify-between p-4 rounded-2xl bg-olive text-cream-light hover:bg-olive-dark active:scale-[0.99] disabled:opacity-45 disabled:pointer-events-none transition-all shadow-sm"
+        >
+          <div class="flex items-center gap-3 text-left">
+            <span class="w-10 h-10 rounded-xl bg-cream-light/15 flex items-center justify-center shrink-0">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                <polyline points="10 17 15 12 10 7"></polyline>
+                <line x1="15" y1="12" x2="3" y2="12"></line>
+              </svg>
+            </span>
+            <div>
+              <div class="font-semibold text-base leading-tight">Entrar no ateliê</div>
+              <div class="text-xs text-cream/85 mt-0.5">Iniciar expediente</div>
+            </div>
+          </div>
+          <span id="badge-time-in" class="font-mono text-xs bg-cream-light/15 px-2.5 py-1 rounded-lg tabular-nums">
+            --:--
+          </span>
+        </button>
+
+        <!-- Ir almoçar -->
+        <button
+          id="btn-lunch-out"
+          type="button"
+          class="group flex items-center justify-between p-4 rounded-2xl bg-cream border-2 border-olive/40 text-olive-dark hover:bg-olive/10 active:scale-[0.99] disabled:opacity-45 disabled:pointer-events-none transition-all"
+        >
+          <div class="flex items-center gap-3 text-left">
+            <span class="w-10 h-10 rounded-xl bg-olive/15 flex items-center justify-center shrink-0 text-olive-dark">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+                <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+                <line x1="6" y1="1" x2="6" y2="4"></line>
+                <line x1="10" y1="1" x2="10" y2="4"></line>
+                <line x1="14" y1="1" x2="14" y2="4"></line>
+              </svg>
+            </span>
+            <div>
+              <div class="font-semibold text-base leading-tight">Ir almoçar</div>
+              <div class="text-xs text-ink-muted mt-0.5">Pausar para almoço</div>
+            </div>
+          </div>
+          <span id="badge-time-lunch-out" class="font-mono text-xs bg-olive/10 text-olive-dark px-2.5 py-1 rounded-lg tabular-nums">
+            --:--
+          </span>
+        </button>
+
+        <!-- Voltar do almoço -->
+        <button
+          id="btn-lunch-in"
+          type="button"
+          class="group flex items-center justify-between p-4 rounded-2xl bg-cream border-2 border-olive/40 text-olive-dark hover:bg-olive/10 active:scale-[0.99] disabled:opacity-45 disabled:pointer-events-none transition-all"
+        >
+          <div class="flex items-center gap-3 text-left">
+            <span class="w-10 h-10 rounded-xl bg-olive/15 flex items-center justify-center shrink-0 text-olive-dark">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                <path d="M9 14l-4-4 4-4"></path>
+                <path d="M5 10h11a4 4 0 1 1 0 8h-1"></path>
+              </svg>
+            </span>
+            <div>
+              <div class="font-semibold text-base leading-tight">Voltar do almoço</div>
+              <div class="text-xs text-ink-muted mt-0.5">Retomar trabalho no ateliê</div>
+            </div>
+          </div>
+          <span id="badge-time-lunch-in" class="font-mono text-xs bg-olive/10 text-olive-dark px-2.5 py-1 rounded-lg tabular-nums">
+            --:--
+          </span>
+        </button>
+
+        <!-- Encerrar expediente -->
+        <button
+          id="btn-clock-out"
+          type="button"
+          class="group flex items-center justify-between p-4 rounded-2xl bg-ink text-cream-light hover:bg-ink/90 active:scale-[0.99] disabled:opacity-45 disabled:pointer-events-none transition-all shadow-sm"
+        >
+          <div class="flex items-center gap-3 text-left">
+            <span class="w-10 h-10 rounded-xl bg-cream-light/15 flex items-center justify-center shrink-0">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+              </svg>
+            </span>
+            <div>
+              <div class="font-semibold text-base leading-tight">Encerrar expediente</div>
+              <div class="text-xs text-cream/75 mt-0.5">Finalizar dia no ateliê</div>
+            </div>
+          </div>
+          <span id="badge-time-out" class="font-mono text-xs bg-cream-light/15 px-2.5 py-1 rounded-lg tabular-nums">
+            --:--
+          </span>
+        </button>
+      </div>
+
+      <!-- Barra de feedback / mensagens (substitui alert/confirm) -->
+      <div id="status-banner" role="status" aria-live="polite" class="hidden mt-4 px-4 py-3 rounded-xl text-sm font-medium bg-olive/10 text-olive-dark border border-olive/25 flex items-center justify-between gap-2">
+        <span id="status-banner-text"></span>
+        <button id="status-banner-close" type="button" class="text-xs font-bold px-2 py-0.5 rounded hover:bg-olive/15">
+          ✕
+        </button>
+      </div>
+    </section>
+
+    <!-- Resumo Formatado & Exportação para o Notion -->
+    <section aria-label="Resumo para o Notion" class="atelier-card rounded-3xl p-5 sm:p-6 mb-5">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+        <div>
+          <h2 class="text-sm font-bold uppercase tracking-wider text-olive-dark">
+            Resumo Pronto para o Notion
+          </h2>
+          <p class="text-xs text-ink-muted mt-0.5">
+            Copie o texto abaixo e cole diretamente em uma página ou bloco do Notion.
+          </p>
+        </div>
+
+        <button
+          id="btn-copy-notion"
+          type="button"
+          class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-olive text-cream-light hover:bg-olive-dark active:scale-[0.99] font-semibold text-sm transition-all shadow-sm shrink-0"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          <span id="copy-btn-label">Copiar resumo para Notion</span>
+        </button>
+      </div>
+
+      <pre id="notion-preview" class="w-full rounded-2xl bg-cream border border-cream-border p-4 font-mono text-xs sm:text-sm text-ink whitespace-pre-wrap leading-relaxed overflow-x-auto"></pre>
+    </section>
+
+    <!-- Histórico Diário Salvo no Navegador (localStorage) -->
+    <section aria-label="Histórico diário de batidas" class="atelier-card rounded-3xl p-5 sm:p-6">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h2 class="text-sm font-bold uppercase tracking-wider text-olive-dark">
+            Histórico Diário
+          </h2>
+          <p class="text-xs text-ink-muted mt-0.5">
+            Salvo automaticamente neste navegador.
+          </p>
+        </div>
+        <span id="history-count" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-cream-dark text-olive-dark">
+          0 registros
+        </span>
+      </div>
+
+      <div id="history-list" class="space-y-2.5">
+        <!-- Preenchido via JavaScript -->
+      </div>
+    </section>
+  </div>
+
+  <script>
+    /**
+     * Relógio de Ponto — Ateliê Raymark
+     * Gerencia batidas de ponto (entrada, saída para almoço, volta do almoço, saída),
+     * cálculos em tempo real, persistência em localStorage e formatação para Notion.
+     */
+    (function () {
+      'use strict';
+
+      const STORAGE_KEY = 'atelie_raymark_ponto_v1';
+
+      // Estrutura padrão do registro diário
+      function createEmptyDayRecord(dateKey) {
+        return {
+          dateKey: dateKey, // YYYY-MM-DD
+          clockIn: null,   // timestamp ms
+          lunchOut: null,  // timestamp ms
+          lunchIn: null,   // timestamp ms
+          clockOut: null,  // timestamp ms
+          events: []       // { id, type, label, timestamp }
+        };
+      }
+
+      // Estado da aplicação
+      let state = {
+        recordsByDate: {} // { '2026-11-23': { ... } }
+      };
+
+      // Cache de elementos do DOM
+      const els = {
+        currentDateLabel: document.getElementById('current-date-label'),
+        liveClock: document.getElementById('live-clock'),
+        shiftStatusBadge: document.getElementById('shift-status-badge'),
+
+        metricAtelierDuration: document.getElementById('metric-atelier-duration'),
+        metricAtelierSub: document.getElementById('metric-atelier-sub'),
+        metricLunchDuration: document.getElementById('metric-lunch-duration'),
+        metricLunchSub: document.getElementById('metric-lunch-sub'),
+        metricLunchReturn: document.getElementById('metric-lunch-return'),
+        metricLunchReturnMinutes: document.getElementById('metric-lunch-return-minutes'),
+
+        btnClockIn: document.getElementById('btn-clock-in'),
+        btnLunchOut: document.getElementById('btn-lunch-out'),
+        btnLunchIn: document.getElementById('btn-lunch-in'),
+        btnClockOut: document.getElementById('btn-clock-out'),
+        btnResetDay: document.getElementById('btn-reset-day'),
+
+        badgeTimeIn: document.getElementById('badge-time-in'),
+        badgeTimeLunchOut: document.getElementById('badge-time-lunch-out'),
+        badgeTimeLunchIn: document.getElementById('badge-time-lunch-in'),
+        badgeTimeOut: document.getElementById('badge-time-out'),
+
+        statusBanner: document.getElementById('status-banner'),
+        statusBannerText: document.getElementById('status-banner-text'),
+        statusBannerClose: document.getElementById('status-banner-close'),
+
+        btnCopyNotion: document.getElementById('btn-copy-notion'),
+        copyBtnLabel: document.getElementById('copy-btn-label'),
+        notionPreview: document.getElementById('notion-preview'),
+
+        historyCount: document.getElementById('history-count'),
+        historyList: document.getElementById('history-list')
+      };
+
+      // Obtém chave de data local no formato YYYY-MM-DD
+      function getDateKey(dateObj = new Date()) {
+        const y = dateObj.getFullYear();
+        const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const d = String(dateObj.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+      }
+
+      // Formata data legível em pt-BR
+      function formatFullDatePtBR(dateObj = new Date()) {
+        return dateObj.toLocaleDateString('pt-BR', {
+          weekday: 'long',
+          day: '2-digit',
+          month: 'long',
+          year: 'numeric'
+        });
+      }
+
+      // Formata data curta DD/MM/YYYY a partir de YYYY-MM-DD
+      function formatShortDateFromKey(dateKey) {
+        const parts = dateKey.split('-');
+        if (parts.length !== 3) return dateKey;
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+      }
+
+      // Formata timestamp para HH:MM
+      function formatHM(ms) {
+        if (!ms) return '--:--';
+        const d = new Date(ms);
+        return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      }
+
+      // Formata timestamp para HH:MM:SS
+      function formatHMS(ms) {
+        if (!ms) return '--:--:--';
+        const d = new Date(ms);
+        return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      }
+
+      // Formata duração em milissegundos como "00h 00m 00s"
+      function formatDurationHMS(ms) {
+        const safeMs = Math.max(0, Math.floor(ms || 0));
+        const totalSeconds = Math.floor(safeMs / 1000);
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        return `${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
+      }
+
+      // Formata duração em milissegundos como "00h 00m"
+      function formatDurationHM(ms) {
+        const safeMs = Math.max(0, Math.floor(ms || 0));
+        const totalMinutes = Math.floor(safeMs / 60000);
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+        return `${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m`;
+      }
+
+      // Carrega estado do localStorage com segurança
+      function loadState() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && typeof parsed === 'object' && parsed.recordsByDate) {
+              state.recordsByDate = parsed.recordsByDate;
+            }
+          }
+        } catch (err) {
+          showBanner('Não foi possível acessar o armazenamento local. O registro funcionará apenas nesta sessão.');
+        }
+
+        const todayKey = getDateKey(new Date());
+        if (!state.recordsByDate[todayKey]) {
+          state.recordsByDate[todayKey] = createEmptyDayRecord(todayKey);
+        }
+      }
+
+      // Salva estado no localStorage
+      function saveState() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        } catch (err) {
+          showBanner('Atenção: não foi possível salvar no navegador.');
+        }
+      }
+
+      // Retorna o registro de hoje (garantindo que exista)
+      function getTodayRecord() {
+        const todayKey = getDateKey(new Date());
+        if (!state.recordsByDate[todayKey]) {
+          state.recordsByDate[todayKey] = createEmptyDayRecord(todayKey);
+        }
+        return state.recordsByDate[todayKey];
+      }
+
+      // Calcula durações de almoço e tempo total no ateliê para um registro
+      function computeMetrics(record, nowMs = Date.now()) {
+        let lunchMs = 0;
+        let lunchActive = false;
+
+        if (record.lunchOut) {
+          if (record.lunchIn) {
+            lunchMs = Math.max(0, record.lunchIn - record.lunchOut);
+          } else if (!record.clockOut) {
+            lunchMs = Math.max(0, nowMs - record.lunchOut);
+            lunchActive = true;
+          }
+        }
+
+        let grossAtelierMs = 0;
+        let shiftActive = false;
+
+        if (record.clockIn) {
+          const endPoint = record.clockOut ? record.clockOut : nowMs;
+          grossAtelierMs = Math.max(0, endPoint - record.clockIn);
+          if (!record.clockOut) {
+            shiftActive = true;
+          }
+        }
+
+        // Tempo líquido no ateliê = tempo total desde entrada menos o tempo de almoço
+        const netAtelierMs = Math.max(0, grossAtelierMs - lunchMs);
+
+        // Minutos exatos da volta do almoço (ex.: 13:18 -> minuto 18 da hora, e também minutos do dia)
+        let lunchReturnClock = '--:--';
+        let lunchReturnMinuteOfHour = null;
+        let lunchReturnTotalMinutesFromMidnight = null;
+
+        if (record.lunchIn) {
+          const retDate = new Date(record.lunchIn);
+          lunchReturnClock = formatHM(record.lunchIn);
+          lunchReturnMinuteOfHour = retDate.getMinutes();
+          lunchReturnTotalMinutesFromMidnight = retDate.getHours() * 60 + retDate.getMinutes();
+        }
+
+        const lunchTotalMinutes = Math.floor(lunchMs / 60000);
+
+        return {
+          netAtelierMs,
+          lunchMs,
+          lunchTotalMinutes,
+          lunchActive,
+          shiftActive,
+          lunchReturnClock,
+          lunchReturnMinuteOfHour,
+          lunchReturnTotalMinutesFromMidnight
+        };
+      }
+
+      // Exibe mensagem na faixa de status (sem usar alert())
+      function showBanner(message) {
+        els.statusBannerText.textContent = message;
+        els.statusBanner.classList.remove('hidden');
+      }
+
+      function hideBanner() {
+        els.statusBanner.classList.add('hidden');
+      }
+
+      // Registra uma batida de ponto
+      function punch(type, label) {
+        try {
+          const now = Date.now();
+          const rec = getTodayRecord();
+
+          if (type === 'clockIn') {
+            if (rec.clockIn) {
+              showBanner('A entrada no ateliê já foi registrada hoje.');
+              return;
+            }
+            rec.clockIn = now;
+          } else if (type === 'lunchOut') {
+            if (!rec.clockIn) {
+              showBanner('Registre primeiro a entrada no ateliê antes de sair para almoçar.');
+              return;
+            }
+            if (rec.clockOut) {
+              showBanner('O expediente de hoje já foi encerrado.');
+              return;
+            }
+            if (rec.lunchOut) {
+              showBanner('A saída para o almoço já foi registrada hoje.');
+              return;
+            }
+            rec.lunchOut = now;
+          } else if (type === 'lunchIn') {
+            if (!rec.lunchOut) {
+              showBanner('Registre primeiro a saída para o almoço.');
+              return;
+            }
+            if (rec.lunchIn) {
+              showBanner('A volta do almoço já foi registrada hoje.');
+              return;
+            }
+            rec.lunchIn = now;
+          } else if (type === 'clockOut') {
+            if (!rec.clockIn) {
+              showBanner('Registre a entrada no ateliê antes de encerrar o expediente.');
+              return;
+            }
+            if (rec.lunchOut && !rec.lunchIn) {
+              showBanner('Registre a volta do almoço antes de encerrar o expediente.');
+              return;
+            }
+            if (rec.clockOut) {
+              showBanner('O expediente de hoje já foi encerrado.');
+              return;
+            }
+            rec.clockOut = now;
+          }
+
+          rec.events.push({
+            id: `${now}-${Math.random().toString(36).slice(2, 7)}`,
+            type,
+            label,
+            timestamp: now
+          });
+
+          saveState();
+          updateUI();
+          showBanner(`${label} registrado às ${formatHMS(now)}.`);
+        } catch (err) {
+          showBanner('Ocorreu um erro ao registrar o ponto.');
+        }
+      }
+
+      // Limpa apenas o registro do dia atual
+      function resetTodayRecord() {
+        try {
+          const todayKey = getDateKey(new Date());
+          state.recordsByDate[todayKey] = createEmptyDayRecord(todayKey);
+          saveState();
+          updateUI();
+          showBanner('Registro de hoje limpo. Pronto para iniciar uma nova batida.');
+        } catch (err) {
+          showBanner('Não foi possível limpar o registro de hoje.');
+        }
+      }
+
+      // Gera o texto formatado para colar diretamente no Notion
+      function buildNotionSummary(record, metrics) {
+        const dateFormatted = formatShortDateFromKey(record.dateKey);
+        const entrada = formatHM(record.clockIn);
+        const saidaAlmoco = formatHM(record.lunchOut);
+        const voltaAlmoco = formatHM(record.lunchIn);
+        const saida = formatHM(record.clockOut);
+
+        const tempoAtelieHM = formatDurationHM(metrics.netAtelierMs);
+        const tempoAtelieHMS = formatDurationHMS(metrics.netAtelierMs);
+        const tempoAlmocoHM = formatDurationHM(metrics.lunchMs);
+
+        const voltaMinTexto = record.lunchIn
+          ? `${voltaAlmoco} (minuto :${String(metrics.lunchReturnMinuteOfHour).padStart(2, '0')} da hora)`
+          : '--:--';
+
+        return [
+          `🕰️ Ponto — Ateliê Raymark (${dateFormatted})`,
+          `• Entrada no ateliê: ${entrada}`,
+          `• Saída para almoço: ${saidaAlmoco}`,
+          `• Volta do almoço: ${voltaMinTexto}`,
+          `• Encerramento: ${saida}`,
+          `• Tempo total no ateliê: ${tempoAtelieHM} (${tempoAtelieHMS})`,
+          `• Duração do almoço: ${tempoAlmocoHM} (${metrics.lunchTotalMinutes} min)`
+        ].join('\n');
+      }
+
+      // Copia o resumo para a área de transferência (com fallback para document.execCommand em iframes)
+      function copySummaryToNotion() {
+        const rec = getTodayRecord();
+        const metrics = computeMetrics(rec, Date.now());
+        const textToCopy = buildNotionSummary(rec, metrics);
+
+        const onSuccess = () => {
+          const originalLabel = els.copyBtnLabel.textContent;
+          els.copyBtnLabel.textContent = 'Copiado para o Notion!';
+          showBanner('Resumo copiado! Agora é só colar (Ctrl+V ou Cmd+V) no Notion.');
+          setTimeout(() => {
+            els.copyBtnLabel.textContent = originalLabel;
+          }, 2200);
+        };
+
+        const fallbackCopy = () => {
+          try {
+            const textarea = document.createElement('textarea');
+            textarea.value = textToCopy;
+            textarea.setAttribute('readonly', '');
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            const ok = document.execCommand('copy');
+            document.body.removeChild(textarea);
+            if (ok) {
+              onSuccess();
+            } else {
+              showBanner('Selecione o texto no quadro acima para copiar manualmente.');
+            }
+          } catch (e) {
+            showBanner('Não foi possível copiar automaticamente neste navegador.');
+          }
+        };
+
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+          navigator.clipboard.writeText(textToCopy).then(onSuccess).catch(fallbackCopy);
+        } else {
+          fallbackCopy();
+        }
+      }
+
+      // Atualiza botões, métricas, prévia do Notion e histórico
+      function updateUI() {
+        const now = new Date();
+        const nowMs = now.getTime();
+
+        els.currentDateLabel.textContent = formatFullDatePtBR(now);
+        els.liveClock.textContent = formatHMS(nowMs);
+
+        const rec = getTodayRecord();
+        const metrics = computeMetrics(rec, nowMs);
+
+        // Status atual do expediente
+        if (!rec.clockIn) {
+          els.shiftStatusBadge.textContent = 'Aguardando entrada';
+          els.shiftStatusBadge.className = 'text-xs font-medium px-2.5 py-0.5 rounded-full bg-cream-dark text-ink-muted';
+        } else if (rec.clockOut) {
+          els.shiftStatusBadge.textContent = 'Expediente encerrado';
+          els.shiftStatusBadge.className = 'text-xs font-semibold px-2.5 py-0.5 rounded-full bg-ink text-cream-light';
+        } else if (rec.lunchOut && !rec.lunchIn) {
+          els.shiftStatusBadge.textContent = 'Em horário de almoço';
+          els.shiftStatusBadge.className = 'text-xs font-semibold px-2.5 py-0.5 rounded-full bg-olive/20 text-olive-dark';
+        } else {
+          els.shiftStatusBadge.textContent = 'Trabalhando no ateliê';
+          els.shiftStatusBadge.className = 'text-xs font-semibold px-2.5 py-0.5 rounded-full bg-olive text-cream-light';
+        }
+
+        // Métricas principais
+        els.metricAtelierDuration.textContent = formatDurationHMS(metrics.netAtelierMs);
+        els.metricAtelierSub.textContent = metrics.shiftActive
+          ? (metrics.lunchActive ? 'Pausado durante o almoço' : 'Cronômetro rodando em tempo real')
+          : (rec.clockOut ? `Encerrado às ${formatHM(rec.clockOut)}` : 'Desconta automaticamente o almoço');
+
+        els.metricLunchDuration.textContent = formatDurationHM(metrics.lunchMs);
+        els.metricLunchSub.textContent = metrics.lunchActive
+          ? `Almoçando há ${metrics.lunchTotalMinutes} min`
+          : (rec.lunchIn ? `Total: ${metrics.lunchTotalMinutes} minutos de almoço` : 'Saída e volta cronometradas');
+
+        els.metricLunchReturn.textContent = metrics.lunchReturnClock;
+        if (rec.lunchIn) {
+          els.metricLunchReturnMinutes.textContent =
+            `Voltou no minuto :${String(metrics.lunchReturnMinuteOfHour).padStart(2, '0')} (${metrics.lunchReturnTotalMinutesFromMidnight} min do dia)`;
+        } else {
+          els.metricLunchReturnMinutes.textContent = 'Minutos do retorno: -- min';
+        }
+
+        // Horários nos botões
+        els.badgeTimeIn.textContent = formatHM(rec.clockIn);
+        els.badgeTimeLunchOut.textContent = formatHM(rec.lunchOut);
+        els.badgeTimeLunchIn.textContent = formatHM(rec.lunchIn);
+        els.badgeTimeOut.textContent = formatHM(rec.clockOut);
+
+        // Regras de habilitação dos botões para evitar batidas fora de ordem
+        els.btnClockIn.disabled = Boolean(rec.clockIn);
+        els.btnLunchOut.disabled = !rec.clockIn || Boolean(rec.lunchOut) || Boolean(rec.clockOut);
+        els.btnLunchIn.disabled = !rec.lunchOut || Boolean(rec.lunchIn) || Boolean(rec.clockOut);
+        els.btnClockOut.disabled = !rec.clockIn || (Boolean(rec.lunchOut) && !Boolean(rec.lunchIn)) || Boolean(rec.clockOut);
+
+        // Atualiza prévia para o Notion
+        els.notionPreview.textContent = buildNotionSummary(rec, metrics);
+
+        // Renderiza histórico diário (ordenado da data mais recente para a mais antiga)
+        renderHistory(nowMs);
+      }
+
+      // Renderiza a lista de dias salvos no localStorage
+      function renderHistory(nowMs) {
+        const keys = Object.keys(state.recordsByDate).sort((a, b) => b.localeCompare(a));
+        const meaningfulKeys = keys.filter((k) => {
+          const r = state.recordsByDate[k];
+          return r && (r.clockIn || r.lunchOut || r.lunchIn || r.clockOut);
+        });
+
+        els.historyCount.textContent = `${meaningfulKeys.length} ${meaningfulKeys.length === 1 ? 'dia' : 'dias'}`;
+
+        if (meaningfulKeys.length === 0) {
+          els.historyList.innerHTML = `
+            <div class="rounded-2xl bg-cream border border-cream-border p-4 text-center text-sm text-ink-muted">
+              Nenhuma batida registrada ainda. Clique em <strong>Entrar no ateliê</strong> para começar.
+            </div>
+          `;
+          return;
+        }
+
+        els.historyList.innerHTML = meaningfulKeys.map((dateKey) => {
+          const rec = state.recordsByDate[dateKey];
+          const m = computeMetrics(rec, nowMs);
+          const dateLabel = formatShortDateFromKey(dateKey);
+          const isToday = dateKey === getDateKey(new Date());
+
+          return `
+            <div class="rounded-2xl bg-cream border border-cream-border p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="font-mono text-sm font-bold text-olive-dark">${dateLabel}</span>
+                  ${isToday ? '<span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-olive text-cream-light">Hoje</span>' : ''}
+                </div>
+                <div class="text-xs text-ink-muted mt-1 flex flex-wrap gap-x-3 gap-y-1 font-mono">
+                  <span>Ent: <strong>${formatHM(rec.clockIn)}</strong></span>
+                  <span>Almoço: <strong>${formatHM(rec.lunchOut)} → ${formatHM(rec.lunchIn)}</strong></span>
+                  <span>Saída: <strong>${formatHM(rec.clockOut)}</strong></span>
+                </div>
+              </div>
+
+              <div class="flex sm:flex-col items-center sm:items-end justify-between border-t sm:border-t-0 border-cream-border pt-2 sm:pt-0 text-right">
+                <span class="text-xs text-ink-muted">No ateliê</span>
+                <span class="font-mono text-sm font-bold text-ink tabular-nums">${formatDurationHM(m.netAtelierMs)}</span>
+                <span class="font-mono text-[11px] text-olive-dark tabular-nums">Almoço: ${formatDurationHM(m.lunchMs)}</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // Vincula eventos de clique
+      function bindEvents() {
+        els.btnClockIn.addEventListener('click', () => punch('clockIn', 'Entrada no ateliê'));
+        els.btnLunchOut.addEventListener('click', () => punch('lunchOut', 'Saída para almoço'));
+        els.btnLunchIn.addEventListener('click', () => punch('lunchIn', 'Volta do almoço'));
+        els.btnClockOut.addEventListener('click', () => punch('clockOut', 'Encerramento do expediente'));
+        els.btnResetDay.addEventListener('click', resetTodayRecord);
+        els.btnCopyNotion.addEventListener('click', copySummaryToNotion);
+        els.statusBannerClose.addEventListener('click', hideBanner);
+      }
+
+      // Inicialização
+      window.addEventListener('DOMContentLoaded', () => {
+        loadState();
+        bindEvents();
+        updateUI();
+        setInterval(updateUI, 1000);
+      });
+    })();
+  </script>
+</body>
+</html>
